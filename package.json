@@ -1,11 +1,17 @@
 {
-  "name": "nuxt-perfect-scrollbar",
+  "name": "@obriilabs/nuxt-perfect-scrollbar",
   "version": "1.0.0",
   "description": "Nuxt module that ports perfect-scrollbar behavior without depending on the abandoned package.",
-  "repository": "studn/nuxt-perfect-scrollbar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/obriilabs/nuxt-perfect-scrollbar.git"
+  },
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.5.2",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/types.d.mts",
@@ -21,16 +27,20 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md"
   ],
   "scripts": {
     "prepack": "nuxt-module-build build",
     "dev": "pnpm run dev:prepare && nuxt dev playground",
     "dev:build": "nuxt build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
-    "release": "pnpm run lint && pnpm run test && pnpm run prepack && changelogen --release && npm publish && git push --follow-tags",
+    "release": "pnpm run lint && pnpm run test && pnpm run prepack && changelogen --release && npm publish --access public && git push --follow-tags",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:watch": "vitest watch",
     "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit"
   },
@@ -43,12 +53,17 @@
     "@nuxt/module-builder": "^1.0.2",
     "@nuxt/schema": "^4.4.8",
     "@nuxt/test-utils": "^4.0.3",
+    "@playwright/test": "^1.61.0",
     "@types/node": "latest",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/test-utils": "^2.4.11",
     "changelogen": "^0.6.2",
     "eslint": "^10.4.1",
+    "happy-dom": "^20.10.6",
     "nuxt": "^4.4.8",
     "typescript": "~6.0.3",
     "vitest": "^4.1.8",
+    "vue": "^3.5.38",
     "vue-tsc": "^3.3.3"
   }
 }
