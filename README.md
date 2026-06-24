@@ -149,19 +149,19 @@ function onReady(instance: PerfectScrollbarInstance) {
 }
 
 function onScroll(detail: PerfectScrollbarScrollEventDetail) {
-  console.log(detail.axis, detail.direction, detail.scrollTop)
+  console.debug(detail.axis, detail.direction, detail.scrollTop)
 }
 
 function onReach(detail: PerfectScrollbarReachEventDetail) {
-  console.log(detail.axis, detail.position)
+  console.debug(detail.axis, detail.position)
 }
 
 function onUpdate(instance: PerfectScrollbarInstance) {
-  console.log(instance.scrollbarYActive)
+  console.debug(instance.scrollbarYActive)
 }
 
 function onDestroy() {
-  console.log('destroyed')
+  console.debug('destroyed')
 }
 </script>
 ```
@@ -188,7 +188,9 @@ function onDestroy() {
 
 ## Directive API
 
-Use the directive when you already own the element markup:
+Use the directive when the scroll element already exists in your template and
+you want to attach scrollbar behavior to that exact element instead of wrapping
+its children with `<PerfectScrollbar>`:
 
 ```vue
 <template>
@@ -289,18 +291,65 @@ Returned values:
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `handlers` | `PerfectScrollbarHandlerName[]` | all handlers | Enabled handlers: `clickRail`, `dragThumb`, `keyboard`, `wheel`, `touch`. |
+| `handlers` | `PerfectScrollbarHandlerName[]` | all handlers | Input handlers bound by the engine. See handler details below. |
 | `maxScrollbarLength` | `number \| null` | `null` | Maximum thumb length. |
 | `minScrollbarLength` | `number \| null` | `null` | Minimum thumb length. |
 | `scrollingThreshold` | `number` | `1000` | Time in ms before scrolling classes are removed. |
-| `scrollXMarginOffset` | `number` | `0` | Extra horizontal margin before X axis activates. |
-| `scrollYMarginOffset` | `number` | `0` | Extra vertical margin before Y axis activates. |
-| `suppressScrollX` | `boolean` | `false` | Disables horizontal custom scrollbar behavior. |
-| `suppressScrollY` | `boolean` | `false` | Disables vertical custom scrollbar behavior. |
+| `scrollXMarginOffset` | `number` | `0` | Pixel tolerance before the X rail activates. |
+| `scrollYMarginOffset` | `number` | `0` | Pixel tolerance before the Y rail activates. |
+| `suppressScrollX` | `boolean` | `false` | Keeps the custom X rail/thumb inactive. |
+| `suppressScrollY` | `boolean` | `false` | Keeps the custom Y rail/thumb inactive. |
 | `swipeEasing` | `boolean` | `true` | Enables touch inertia after swipe. |
-| `useBothWheelAxes` | `boolean` | `false` | Maps wheel input to the active axis when only one axis scrolls. |
-| `wheelPropagation` | `boolean` | `true` | Allows wheel events to bubble at scroll edges. |
-| `wheelSpeed` | `number` | `1` | Multiplier for wheel delta. |
+| `useBothWheelAxes` | `boolean` | `false` | Maps wheel input to the single active axis when only one custom axis is active. |
+| `wheelPropagation` | `boolean` | `true` | Allows wheel events to bubble when the container is already at a scroll edge. |
+| `wheelSpeed` | `number` | `1` | Multiplier applied to wheel delta before updating scroll position. |
+
+### Handler Details
+
+The `handlers` option selects which input mechanisms the instance binds. By
+default all handlers are enabled.
+
+| Handler | Behavior |
+| --- | --- |
+| `clickRail` | Clicking a rail scrolls by one viewport toward the click. |
+| `dragThumb` | Dragging a thumb scrolls the container on that axis. |
+| `keyboard` | Arrow keys, Page Up/Down, Home/End, and Space scroll the hovered container or focused thumb; editable controls are ignored. |
+| `wheel` | Mouse wheel and trackpad input, including nested scroll checks, `wheelSpeed`, `wheelPropagation`, and `useBothWheelAxes`. |
+| `touch` | Touch and pointer swipes, including optional `swipeEasing` inertia. |
+
+Pass a subset when an integration needs to disable a specific interaction:
+
+```vue
+<PerfectScrollbar :options="{ handlers: ['wheel', 'touch'] }">
+  ...
+</PerfectScrollbar>
+```
+
+### Axis And Wheel Behavior
+
+`scrollXMarginOffset` and `scrollYMarginOffset` are overflow tolerances, not CSS
+margin values. The X rail activates only when `contentWidth` is greater than
+`containerWidth + scrollXMarginOffset`; Y uses the same rule for height. This is
+useful for ignoring one- or two-pixel overflow caused by rounding or layout
+measurement noise.
+
+`suppressScrollX` and `suppressScrollY` keep the custom rail/thumb inactive for
+that axis. Use them for one-axis scrollbar UIs. They do not resize content or
+make overflowing content fit; if an axis must never move, constrain the layout
+or overflow behavior for that content as well.
+
+`useBothWheelAxes` is for one-axis scroll areas. If only Y is active, horizontal
+wheel delta can scroll Y. If only X is active, vertical wheel delta can scroll X.
+When both axes are active, wheel input stays on its own axis.
+
+`wheelPropagation` controls what happens at scroll edges. While the container can
+still scroll, wheel input is consumed by the container. At the start or end,
+`true` lets the event bubble to a parent scroll area; `false` prevents bubbling
+at that edge. Keyboard edge handling follows the same propagation setting.
+
+`wheelSpeed` multiplies wheel delta before it is applied to `scrollTop` and
+`scrollLeft`. `1` keeps the incoming delta unchanged, values above `1` make wheel
+scrolling faster, and values between `0` and `1` make it slower.
 
 ## Auto Update
 
@@ -478,10 +527,11 @@ pnpm run test:types
 pnpm run prepack
 ```
 
-Browser tests use Playwright. Install Chromium before the first run if needed:
+Browser tests use Playwright. Install Chromium and WebKit before the first run
+if needed:
 
 ```bash
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 ```
 
 ## Porting Rule

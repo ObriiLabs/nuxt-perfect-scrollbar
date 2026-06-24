@@ -151,19 +151,19 @@ function onReady(instance: PerfectScrollbarInstance) {
 }
 
 function onScroll(detail: PerfectScrollbarScrollEventDetail) {
-  console.log(detail.axis, detail.direction, detail.scrollTop)
+  console.debug(detail.axis, detail.direction, detail.scrollTop)
 }
 
 function onReach(detail: PerfectScrollbarReachEventDetail) {
-  console.log(detail.axis, detail.position)
+  console.debug(detail.axis, detail.position)
 }
 
 function onUpdate(instance: PerfectScrollbarInstance) {
-  console.log(instance.scrollbarYActive)
+  console.debug(instance.scrollbarYActive)
 }
 
 function onDestroy() {
-  console.log('destroyed')
+  console.debug('destroyed')
 }
 </script>
 ```
@@ -190,7 +190,9 @@ function onDestroy() {
 
 ## API директиви
 
-Використовуйте директиву, коли ви вже володієте розміткою елемента:
+Використовуйте директиву, коли scroll-елемент уже існує у вашому template і ви
+хочете підключити поведінку скролбара саме до цього елемента, а не обгортати
+його дітей у `<PerfectScrollbar>`:
 
 ```vue
 <template>
@@ -292,18 +294,67 @@ const {
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `handlers` | `PerfectScrollbarHandlerName[]` | all handlers | Увімкнені handler-и: `clickRail`, `dragThumb`, `keyboard`, `wheel`, `touch`. |
+| `handlers` | `PerfectScrollbarHandlerName[]` | all handlers | Input handler-и, які підключає engine. Дивіться деталі нижче. |
 | `maxScrollbarLength` | `number \| null` | `null` | Максимальна довжина thumb. |
 | `minScrollbarLength` | `number \| null` | `null` | Мінімальна довжина thumb. |
 | `scrollingThreshold` | `number` | `1000` | Час у мс до зняття scrolling-класів. |
-| `scrollXMarginOffset` | `number` | `0` | Додатковий горизонтальний відступ перед активацією осі X. |
-| `scrollYMarginOffset` | `number` | `0` | Додатковий вертикальний відступ перед активацією осі Y. |
-| `suppressScrollX` | `boolean` | `false` | Вимикає кастомну поведінку горизонтального скролбара. |
-| `suppressScrollY` | `boolean` | `false` | Вимикає кастомну поведінку вертикального скролбара. |
+| `scrollXMarginOffset` | `number` | `0` | Толеранс у пікселях перед активацією X rail. |
+| `scrollYMarginOffset` | `number` | `0` | Толеранс у пікселях перед активацією Y rail. |
+| `suppressScrollX` | `boolean` | `false` | Тримає кастомний X rail/thumb неактивним. |
+| `suppressScrollY` | `boolean` | `false` | Тримає кастомний Y rail/thumb неактивним. |
 | `swipeEasing` | `boolean` | `true` | Вмикає touch-інерцію після swipe. |
-| `useBothWheelAxes` | `boolean` | `false` | Перенаправляє wheel input на активну вісь, коли скролиться лише одна вісь. |
-| `wheelPropagation` | `boolean` | `true` | Дозволяє wheel-подіям bubbling на краях scroll-області. |
-| `wheelSpeed` | `number` | `1` | Множник для wheel delta. |
+| `useBothWheelAxes` | `boolean` | `false` | Перенаправляє wheel input на єдину активну вісь, коли активна лише одна кастомна вісь. |
+| `wheelPropagation` | `boolean` | `true` | Дозволяє wheel-подіям bubbling, коли контейнер уже на scroll-краю. |
+| `wheelSpeed` | `number` | `1` | Множник, який застосовується до wheel delta перед оновленням scroll-позиції. |
+
+### Деталі handler-ів
+
+Опція `handlers` вибирає, які input-механіки підключає інстанс. За
+замовчуванням увімкнені всі handler-и.
+
+| Handler | Поведінка |
+| --- | --- |
+| `clickRail` | Клік по rail скролить на один viewport у напрямку кліку. |
+| `dragThumb` | Перетягування thumb скролить контейнер по відповідній осі. |
+| `keyboard` | Arrow keys, Page Up/Down, Home/End і Space скролять hovered контейнер або focused thumb; editable controls ігноруються. |
+| `wheel` | Mouse wheel і trackpad input, включно з перевірками вкладеного scroll, `wheelSpeed`, `wheelPropagation` і `useBothWheelAxes`. |
+| `touch` | Touch і pointer swipe-и, включно з опційною `swipeEasing` інерцією. |
+
+Передайте підмножину, коли інтеграції потрібно вимкнути конкретну взаємодію:
+
+```vue
+<PerfectScrollbar :options="{ handlers: ['wheel', 'touch'] }">
+  ...
+</PerfectScrollbar>
+```
+
+### Поведінка осей і wheel
+
+`scrollXMarginOffset` і `scrollYMarginOffset` - це overflow-толеранси, а не CSS
+margin. X rail активується лише тоді, коли `contentWidth` більший за
+`containerWidth + scrollXMarginOffset`; для Y діє те саме правило з висотою. Це
+корисно, щоб ігнорувати overflow в один-два пікселі через округлення або шум
+layout-вимірювань.
+
+`suppressScrollX` і `suppressScrollY` тримають кастомний rail/thumb неактивним
+для відповідної осі. Використовуйте їх для UI з кастомним скролбаром лише на
+одній осі. Вони не змінюють розмір контенту і не змушують overflow-контент
+вміщатися; якщо вісь узагалі не має рухатися, додатково обмежте layout або
+overflow-поведінку цього контенту.
+
+`useBothWheelAxes` потрібен для scroll-областей з однією активною віссю. Якщо
+активна лише Y, горизонтальна wheel delta може скролити Y. Якщо активна лише X,
+вертикальна wheel delta може скролити X. Коли активні обидві осі, wheel input
+залишається на своїй осі.
+
+`wheelPropagation` керує поведінкою на scroll-краях. Поки контейнер ще може
+скролитися, wheel input споживається контейнером. На початку або в кінці `true`
+дозволяє події bubble до батьківської scroll-області; `false` блокує bubbling на
+цьому краю. Keyboard edge handling використовує те саме propagation-налаштування.
+
+`wheelSpeed` множить wheel delta перед застосуванням до `scrollTop` і
+`scrollLeft`. `1` залишає вхідну delta без змін, значення більше `1` роблять
+wheel-скрол швидшим, а значення між `0` і `1` - повільнішим.
 
 ## Автоматичне оновлення
 
@@ -481,10 +532,10 @@ pnpm run prepack
 ```
 
 Browser-тести використовують Playwright. Перед першим запуском за потреби
-встановіть Chromium:
+встановіть Chromium і WebKit:
 
 ```bash
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 ```
 
 ## Правило портування
