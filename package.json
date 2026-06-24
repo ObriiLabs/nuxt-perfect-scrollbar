@@ -30,7 +30,8 @@
     "dist",
     "LICENSE",
     "NOTICE.md",
-    "README.md"
+    "README.md",
+    "README.uk.md"
   ],
   "scripts": {
     "prepack": "nuxt-module-build build",

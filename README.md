@@ -1,5 +1,7 @@
 # Nuxt Perfect Scrollbar
 
+[English](./README.md) | [Українська](./README.uk.md)
+
 Maintained Nuxt module for custom scrollbars based on a port of
 [`perfect-scrollbar`](https://github.com/mdbootstrap/perfect-scrollbar).
 
